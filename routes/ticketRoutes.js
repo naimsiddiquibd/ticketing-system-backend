@@ -1,16 +1,24 @@
 const express = require('express');
-const { getTickets, createTicket, getTicket, updateTicket, deleteTicket } = require('../controllers/ticketController');
+const {
+  getTickets,
+  createTicket,
+  initiatePayment,
+  handlePaymentCallback,
+  getTicket,
+  updateTicket,
+  deleteTicket
+} = require('../controllers/ticketController');
+const validateToken = require('../middleware/validateTokenHandler');
 const router = express.Router();
 
-router.route("/").get(getTickets);
+router.use(validateToken);
 
-router.route("/").post(createTicket);
+router.route("/").get(getTickets).post(createTicket);
 
-router.route("/:id").get(getTicket);
+router.route("/:id").get(getTicket).put(updateTicket).delete(deleteTicket);
 
-router.route("/:id").put(updateTicket);
+router.route("/:id/pay").post(initiatePayment);
 
-router.route("/:id").delete(deleteTicket);
-
+router.route("/bkash-callback").get(handlePaymentCallback);
 
 module.exports = router;

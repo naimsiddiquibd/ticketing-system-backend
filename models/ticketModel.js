@@ -9,7 +9,7 @@ const ticketSchema = new Schema({
     required: true
   },
   userId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     index: true, // Create an index for efficient duplicate check
@@ -18,6 +18,15 @@ const ticketSchema = new Schema({
     type: String,
     enum: ['available', 'purchased', 'checked-in', 'approved'],
     default: 'available'
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending'
   }
 }, { timestamps: true }); // Enable timestamps
 
