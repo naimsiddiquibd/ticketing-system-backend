@@ -28,7 +28,26 @@ const userSchema = new Schema({
     type: String,
     required: true,
     trim: true
-  }
+  },
+  phoneNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true
+  },
+  terms: {
+    type: Boolean,
+    required: true,
+    default: true,
+    validate: {
+      validator: function(value) {
+        return value === true;
+      },
+      message: 'Terms must be accepted'
+    }
+  },
+  resetPasswordToken: String,  // Optional: If you want to store reset tokens
+  resetPasswordExpires: Date   // Optional: Token expiry time
 }, { timestamps: true }); // Enable timestamps
 
 // Export the User model

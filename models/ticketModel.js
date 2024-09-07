@@ -14,6 +14,26 @@ const ticketSchema = new Schema({
     required: true,
     index: true, // Create an index for efficient duplicate check
   },
+  eventName: {
+    type: String,
+    required: true
+  },
+  organizer: {
+    type: String,
+    required: true
+  },
+  thumbnail: {
+    type: String,
+    required: true
+  },
+  startDateTime: {
+    type: Date,
+    required: true
+  },
+  endDateTime: {
+    type: Date,
+    required: true
+  },
   status: {
     type: String,
     enum: ['available', 'purchased', 'checked-in', 'approved'],

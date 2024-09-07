@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Event = require('../models/eventModel');
+const upload = require('../middleware/upload');
 
 // @Description: Get all events
 // @Route: GET /api/events
@@ -9,34 +10,63 @@ const getEvents = asyncHandler(async (req, res) => {
   res.status(200).json(events);
 });
 
+
 // @Description: Create new event
 // @Route: POST /api/events
 // @Access: Private (Organizer)
 const createEvent = asyncHandler(async (req, res) => {
-  const { eventName, eventCategory, venue, startDateTime, endDateTime, timezone, recurringEvent, ageRestriction, dressCode, description, specialInstructions } = req.body;
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: 'File upload failed', error: err.message });
+    }
 
-  if (!eventName || !eventCategory || !venue || !startDateTime || !endDateTime || !timezone || !description) {
-    res.status(400);
-    throw new Error("All required fields must be included in the request");
-  }
+    const {
+      eventName,
+      eventCategory,
+      venue,
+      startDateTime,
+      endDateTime,
+      timezone,
+      recurringEvent,
+      ageRestriction,
+      dressCode,
+      description,
+      specialInstructions,
+      price // Extract price from the request body
+    } = req.body;
 
-  const event = await Event.create({
-    eventName,
-    organizer: req.user.id,  // Automatically assign the logged-in user's ID as the organizer
-    eventCategory,
-    venue,
-    startDateTime,
-    endDateTime,
-    timezone,
-    recurringEvent,
-    ageRestriction,
-    dressCode,
-    description,
-    specialInstructions
+    // Check for required fields, including the new price field
+    if (!eventName || !eventCategory || !venue || !startDateTime || !endDateTime || !timezone || !description || price === undefined) {
+      res.status(400);
+      throw new Error("All required fields must be included in the request");
+    }
+
+    // Get file paths if files are uploaded
+    const eventLogoPath = req.files['eventLogo'] ? req.files['eventLogo'][0].path : null;
+    const thumbnailPath = req.files['thumbnail'] ? req.files['thumbnail'][0].path : null;
+
+    const event = await Event.create({
+      eventName,
+      organizer: req.user.id, // Automatically assign the logged-in user's ID as the organizer
+      eventCategory,
+      venue,
+      startDateTime,
+      endDateTime,
+      timezone,
+      recurringEvent,
+      ageRestriction,
+      dressCode,
+      description,
+      specialInstructions,
+      price, // Include the price field when creating the event
+      eventLogo: eventLogoPath,
+      thumbnail: thumbnailPath
+    });
+
+    res.status(201).json(event);
   });
-
-  res.status(201).json(event);
 });
+
 
 // @Description: Get a single event
 // @Route: GET /api/events/:id
@@ -88,10 +118,36 @@ const deleteEvent = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Event deleted successfully' });
 });
 
+
+// @Description: Get all events created by the logged-in user
+// @Route: GET /api/events/my-events
+// @Access: Private
+const getUserEvents = asyncHandler(async (req, res) => {
+  const userId = req.user.id; // Get the logged-in user's ID
+  console.log("user id: " + userId);
+  const events = await Event.find({ organizer: userId }); // Filter events by organizer
+  res.status(200).json(events);
+});
+
+// @Description: Get all events created by the logged-in user
+// @Route: GET /api/events/my-events
+// @Access: Private
+const getUserEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  if (!event) {
+    res.status(404);
+    throw new Error("Event not found!");
+  }
+  res.status(200).json(event);
+});
+
+
 module.exports = {
   getEvents,
   createEvent,
   getEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  getUserEvents,
+  getUserEvent
 };

@@ -1,3 +1,4 @@
+// middleware/upload.js
 const multer = require('multer');
 const path = require('path');
 
@@ -6,10 +7,15 @@ const storage = multer.diskStorage({
         cb(null, 'uploads'); // Save files to the uploads folder
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname); // Keep the original file name
+        // Add timestamp to the filename to avoid conflicts
+        cb(null, Date.now() + '-' + file.originalname);
     }
 });
 
-const upload = multer({ storage: storage });
+// Configure multer to handle multiple file uploads for specific fields
+const upload = multer({ storage: storage }).fields([
+    { name: 'eventLogo', maxCount: 1 },  // Field for event logo
+    { name: 'thumbnail', maxCount: 1 }   // Field for event thumbnail
+]);
 
 module.exports = upload;
