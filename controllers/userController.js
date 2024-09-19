@@ -208,7 +208,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 // @Route: GET /api/users/:id
 // @Access: Public
 const getUserById = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).select('name email');
+    const user = await User.findById(req.params.id).select('name email phoneNumber');
 
     if (!user) {
         res.status(404);

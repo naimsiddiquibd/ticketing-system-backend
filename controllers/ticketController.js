@@ -76,7 +76,8 @@ const initiatePayment = asyncHandler(async (req, res) => {
 
   const paymentDetails = {
     amount: ticket.price,
-    callbackURL: 'http://127.0.0.1:3000/api/tickets/bkash-callback',
+    // callbackURL: 'http://127.0.0.1:3000/api/tickets/bkash-callback',
+    callbackURL: 'http://localhost:3000/mytickets',
     orderID: ticket._id.toString(),
     reference: ticket.userId
   };
@@ -181,10 +182,10 @@ const getTicketsByEvent = asyncHandler(async (req, res) => {
   }
 
   // Ensure the user is the organizer of the event
-  if (event.organizer.toString() !== req.user.id) {
-    res.status(403);
-    throw new Error("User is not the organizer of this event");
-  }
+  // if (event.organizer.toString() !== req.user.id) {
+  //   res.status(403);
+  //   throw new Error("User is not the organizer of this event");
+  // }
 
   // Fetch all tickets for the event
   const tickets = await Ticket.find({ eventId });

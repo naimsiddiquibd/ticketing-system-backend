@@ -13,10 +13,12 @@ const validateToken = require('../middleware/validateTokenHandler');
 const organizerCheck = require('../middleware/organizerCheck');
 const router = express.Router();
 
+router.route("/event/:eventId").get(getTicketsByEvent);
 router.use(validateToken);
 
 // Add a route for fetching tickets by event ID for organizers
-router.route("/event/:eventId").get(organizerCheck, getTicketsByEvent);
+// router.route("/event/:eventId").get(organizerCheck, getTicketsByEvent);
+// router.route("/event/:eventId").get(getTicketsByEvent);
 
 router.route("/").get(getTickets).post(createTicket);
 
