@@ -77,7 +77,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
   const paymentDetails = {
     amount: ticket.price,
     // callbackURL: 'http://127.0.0.1:3000/api/tickets/bkash-callback',
-    callbackURL: 'https://ticketing-system-nextjs-delta.vercel.app/mytickets',
+    callbackURL: 'https://tickimonk.vercel.app/mytickets',
     orderID: ticket._id.toString(),
     reference: ticket.userId
   };
