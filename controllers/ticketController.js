@@ -138,10 +138,10 @@ const updateTicket = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Ticket not found!");
   }
-  if (ticket.userId.toString() !== req.user.id){
-    res.status(403);
-    throw new Error("User don't have permission to update other's tickets");
-  };
+  // if (ticket.userId.toString() !== req.user.id){
+  //   res.status(403);
+  //   throw new Error("User don't have permission to update other's tickets");
+  // };
 
   const updatedTicket = await Ticket.findByIdAndUpdate(
     req.params.id,
