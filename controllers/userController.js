@@ -218,5 +218,53 @@ const getUserById = asyncHandler(async (req, res) => {
     res.status(200).json(user);
 });
 
+// @Description: Change user role
+// @Route: PATCH /api/users/change-role
+// @Access: Private
+const changeUserRole = asyncHandler(async (req, res) => {
+    const { role } = req.body;
+    
+    // Validate role
+    if (!['user', 'organizer', 'ticket-checker'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role specified!' });
+    }
 
-module.exports = { registerUser, loginUser, currentUser, forgetPassword, resetPassword, getUserById };
+    // Find the user by ID
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ message: 'User not found!' });
+    }
+
+    // Update the user's role
+    user.role = role;
+    await user.save();
+
+    // Generate a new access token with updated role
+    const newAccessToken = jwt.sign(
+        {
+            user: {
+                email: user.email,
+                role: user.role,
+                name: user.name,
+                phoneNumber: user.phoneNumber,
+                nid: user.nid,
+                id: user.id
+            },
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: '1440m' }
+    );
+
+    // Respond with the updated role and new token
+    res.status(200).json({
+        message: 'Role updated successfully!',
+        role: user.role,
+        accessToken: newAccessToken,
+    });
+});
+
+  
+
+
+
+module.exports = { registerUser, loginUser, currentUser, forgetPassword, resetPassword, getUserById, changeUserRole };
