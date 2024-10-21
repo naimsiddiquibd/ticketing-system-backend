@@ -7,7 +7,8 @@ const {
   getTicket,
   updateTicket,
   deleteTicket,
-  getTicketsByEvent
+  getTicketsByEvent,
+  verifyTransaction
 } = require('../controllers/ticketController');
 const validateToken = require('../middleware/validateTokenHandler');
 const organizerCheck = require('../middleware/organizerCheck');
@@ -26,6 +27,6 @@ router.route("/:id").get(getTicket).put(updateTicket).delete(deleteTicket);
 
 router.route("/:id/pay").post(initiatePayment);
 
-router.route("/bkash-callback").get(handlePaymentCallback);
+router.route("/verify-transaction").get(verifyTransaction);
 
 module.exports = router;

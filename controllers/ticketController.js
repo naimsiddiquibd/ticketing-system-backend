@@ -1,16 +1,136 @@
 const asyncHandler = require('express-async-handler');
 const Ticket = require('../models/ticketModel');
-const { createPayment, executePayment } = require('bkash-payment');
 const Event = require('../models/eventModel');
+const axios = require('axios');
+const crypto = require('crypto');
 
-// bKash Credentials setup
-const bkashConfig = {
-    base_url : 'https://tokenized.sandbox.bka.sh/v1.2.0-beta',
-    username: '01770618567',
-    password: 'D7DaC<*E*eG',
-    app_key: '0vWQuCRGiUX7EPVjQDr0EUAYtc',
-    app_secret: 'jcUNPBgbcqEDedNKdvE4G1cAK7D3hCjmJccNPZZBq96QIxxwAMEx'
-   }
+const APP_KEY = '38d31ec7a6371e9effedf8cefceacec4'; // Replace with your actual App Key
+const SECRET_KEY = '29263b8238eefc766548751280b6d62d'; // Replace with your actual Secret Key
+
+// Helper function to get current timestamp
+function getCurrentTimestamp() {
+  return Math.floor(Date.now() / 1000);
+}
+
+// Generate Bearer token for the payment gateway
+function generateBearerToken() {
+  const timestamp = getCurrentTimestamp();
+  const token = crypto.createHash('md5').update(SECRET_KEY + timestamp).digest('hex');
+  return `Bearer ${Buffer.from(`${APP_KEY}:${token}`).toString('base64')}`;
+}
+
+//@Description: Initiate payment with the new gateway
+//@Route: POST /api/tickets/:id/pay
+//@Access: Private
+const initiatePayment = asyncHandler(async (req, res) => {
+  const ticket = await Ticket.findById(req.params.id);
+
+  if (!ticket) {
+    res.status(404);
+    throw new Error("Ticket not found!");
+  }
+
+  const {
+    amount, currency, redirect_url, ipn_url,
+    product_name, product_description,
+    name, email, phone, address, city, state, zipcode, country
+  } = req.body;
+
+  const order = {
+    amount,
+    currency: currency || 'BDT',
+    redirect_url,
+    ipn_url,
+  };
+
+  const product = {
+    name: product_name,
+    description: product_description,
+  };
+
+  const billing = {
+    customer: {
+      name,
+      email,
+      phone,
+      address: {
+        street: address,
+        city,
+        state,
+        zipcode,
+        country: country || 'BD',
+      }
+    }
+  };
+
+  const data = { order, product, billing };
+  console.log("ddd: " + JSON.stringify(data));
+
+  try {
+    const response = await axios.post('https://api-sandbox.portpos.com/payment/v2/invoice', data, {
+      headers: {
+        'Authorization': generateBearerToken(),
+        'Content-Type': 'application/json'
+      }
+    });
+    res.json(response.data);
+    console.log("response.data: ", response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+//@Description: Verify payment transaction
+//@Route: POST /api/tickets/verify-transaction
+//@Access: Private
+const verifyTransaction = asyncHandler(async (req, res) => {
+  const { invoice, amount } = req.body;
+
+  try {
+    const response = await axios.get(`https://api-sandbox.portpos.com/payment/v2/invoice/ipn/${invoice}/${amount}`, {}, {
+      headers: {
+        'Authorization': generateBearerToken(),
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (response.data.status === 'Completed') {
+      await Ticket.findByIdAndUpdate(invoice, { paymentStatus: 'completed', status: 'purchased' });
+    }
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error verifying transaction' });
+  }
+});
+
+//@Description: Handle refund request
+//@Route: POST /api/tickets/refund/:invoice_id
+//@Access: Private
+const handleRefundRequest = asyncHandler(async (req, res) => {
+  const { invoice_id } = req.params;
+  const { amount, currency } = req.body;
+
+  const refund = {
+    amount,
+    currency: currency || 'BDT',
+  };
+
+  try {
+    const response = await axios.post(`https://api-sandbox.portpos.com/payment/v2/invoice/refund/${invoice_id}`, { refund }, {
+      headers: {
+        'Authorization': generateBearerToken(),
+        'Content-Type': 'application/json',
+      }
+    });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error processing refund' });
+  }
+});
+
 
 //@Description: Get all the tickets
 //@Route: GET /api/tickets
@@ -63,59 +183,9 @@ const createTicket = asyncHandler(async (req, res) => {
   }
 });
 
-//@Description: Initiate bKash payment
-//@Route: POST /api/tickets/:id/pay
-//@Access: Private
-const initiatePayment = asyncHandler(async (req, res) => {
-  const ticket = await Ticket.findById(req.params.id);
 
-  if (!ticket) {
-    res.status(404);
-    throw new Error("Ticket not found!");
-  }
 
-  const paymentDetails = {
-    amount: ticket.price,
-    // callbackURL: 'http://127.0.0.1:3000/api/tickets/bkash-callback',
-    callbackURL: 'https://tickimonk.vercel.app/mytickets',
-    orderID: ticket._id.toString(),
-    reference: ticket.userId
-  };
 
-  try {
-    const result = await createPayment(bkashConfig, paymentDetails);
-    res.status(200).json(result);
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ error: 'Error initiating payment' });
-  }
-});
-
-//@Description: Handle bKash payment callback
-//@Route: GET /api/tickets/bkash-callback
-//@Access: Private
-const handlePaymentCallback = asyncHandler(async (req, res) => {
-  const { status, paymentID } = req.query;
-  let result;
-  let response = {
-    statusCode: '4000',
-    statusMessage: 'Payment Failed'
-  };
-
-  if (status === 'success') {
-    result = await executePayment(bkashConfig, paymentID);
-  }
-
-  if (result?.transactionStatus === 'Completed') {
-    await Ticket.findByIdAndUpdate(result.orderID, { paymentStatus: 'completed', status: 'purchased' });
-    response = {
-      statusCode: result.statusCode,
-      statusMessage: result.statusMessage
-    };
-  }
-
-  res.status(200).json(response);
-});
 
 //@Description: Get a single ticket
 //@Route: GET /api/tickets/:id
@@ -198,10 +268,12 @@ module.exports = {
 };
 
 module.exports = {
+  initiatePayment,
+  verifyTransaction,
+  handleRefundRequest,
+  
   getTickets,
   createTicket,
-  initiatePayment,
-  handlePaymentCallback,
   getTicket,
   updateTicket,
   deleteTicket,
