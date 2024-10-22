@@ -99,7 +99,7 @@ const loginUser = asyncHandler(async (req, res) => {
             },
         }, 
         process.env.ACCESS_TOKEN_SECRET, 
-        { expiresIn: "1440m" });
+        { expiresIn: "525600m" });
 
         res.status(200).json({ accessToken });
     } else {
@@ -252,7 +252,7 @@ const changeUserRole = asyncHandler(async (req, res) => {
             },
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '1440m' }
+        { expiresIn: '525600m' }
     );
 
     // Respond with the updated role and new token
