@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Event = require('../models/eventModel');
 const upload = require('../middleware/upload');
+const cloudinary = require('../config/cloudinary');
 
 // @Description: Get all events
 // @Route: GET /api/events
@@ -9,6 +10,7 @@ const getEvents = asyncHandler(async (req, res) => {
   const events = await Event.find();
   res.status(200).json(events);
 });
+
 
 
 // @Description: Create new event
@@ -41,10 +43,29 @@ const createEvent = asyncHandler(async (req, res) => {
       throw new Error("All required fields must be included in the request");
     }
 
-    // Get file paths if files are uploaded
-    const eventLogoPath = req.files['eventLogo'] ? req.files['eventLogo'][0].path : null;
-    const thumbnailPath = req.files['thumbnail'] ? req.files['thumbnail'][0].path : null;
+    // Handle Cloudinary upload for eventLogo
+    let eventLogoUrl = null;
+    if (req.files['eventLogo']) {
+      const eventLogo = req.files['eventLogo'][0];
+      const uploadResult = await cloudinary.uploader.upload(eventLogo.path, {
+        folder: 'event_logos', // Cloudinary folder
+        resource_type: 'image'
+      });
+      eventLogoUrl = uploadResult.secure_url; // Get the secure URL from Cloudinary response
+    }
 
+    // Handle Cloudinary upload for thumbnail
+    let thumbnailUrl = null;
+    if (req.files['thumbnail']) {
+      const thumbnail = req.files['thumbnail'][0];
+      const uploadResult = await cloudinary.uploader.upload(thumbnail.path, {
+        folder: 'event_thumbnails', // Cloudinary folder
+        resource_type: 'image'
+      });
+      thumbnailUrl = uploadResult.secure_url; // Get the secure URL from Cloudinary response
+    }
+
+    // Create event
     const event = await Event.create({
       eventName,
       organizer: req.user.id, // Automatically assign the logged-in user's ID as the organizer
@@ -59,8 +80,8 @@ const createEvent = asyncHandler(async (req, res) => {
       description,
       specialInstructions,
       price, // Include the price field when creating the event
-      eventLogo: eventLogoPath,
-      thumbnail: thumbnailPath
+      eventLogo: eventLogoUrl,
+      thumbnail: thumbnailUrl
     });
 
     res.status(201).json(event);
