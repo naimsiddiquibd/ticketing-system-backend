@@ -15,35 +15,46 @@ const eventSchema = new Schema({
   },
   eventCategory: {
     type: String,
-    required: true,
-    trim: true
+    enum: ['Event', 'Course'],
+    default: 'Event'
   },
   venue: {
     type: String,
     required: true,
     trim: true
   },
-  startDateTime: {
-    type: Date,
+  startDate: {
+    type: String,
     required: true
   },
-  endDateTime: {
-    type: Date,
+  startTime: {
+    type: String,
     required: true
+  },
+  endDate: {
+    type: String,
+    required: true
+  },
+  endTime: {
+    type: String,
+    required: true
+  },
+  eventStatus: {
+    type: String,
+    enum: ['Public', 'Draft'],
+    default: 'Public'
   },
   timezone: {
     type: String,
-    required: true,
-    trim: true
+    default: 'Dhaka'
   },
   recurringEvent: {
     type: Boolean,
     default: false
   },
   ageRestriction: {
-    type: String,
-    enum: ['All Ages', '18+', '21+'],
-    default: 'All Ages'
+    type: Boolean,
+    default: false
   },
   dressCode: {
     type: String,

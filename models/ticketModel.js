@@ -26,12 +26,20 @@ const ticketSchema = new Schema({
     type: String,
     required: true
   },
-  startDateTime: {
-    type: Date,
+  startDate: {
+    type: String,
     required: true
   },
-  endDateTime: {
-    type: Date,
+  startTime: {
+    type: String,
+    required: true
+  },
+  endDate: {
+    type: String,
+    required: true
+  },
+  endTime: {
+    type: String,
     required: true
   },
   status: {

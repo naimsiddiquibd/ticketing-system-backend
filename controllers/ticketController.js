@@ -166,8 +166,10 @@ const createTicket = asyncHandler(async (req, res) => {
       eventName: event.eventName,
       organizer: event.organizer,  // Storing the organizer ID
       thumbnail: event.thumbnail,
-      startDateTime: event.startDateTime,
-      endDateTime: event.endDateTime,
+      startDate: event.startDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      endDate: event.endDate,
       status,
       price
     });

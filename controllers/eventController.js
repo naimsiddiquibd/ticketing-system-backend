@@ -26,67 +26,83 @@ const createEvent = asyncHandler(async (req, res) => {
       eventName,
       eventCategory,
       venue,
-      startDateTime,
-      endDateTime,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      eventStatus,
       timezone,
       recurringEvent,
       ageRestriction,
       dressCode,
       description,
       specialInstructions,
-      price // Extract price from the request body
+      price
     } = req.body;
 
-    // Check for required fields, including the new price field
-    if (!eventName || !eventCategory || !venue || !startDateTime || !endDateTime || !timezone || !description || price === undefined) {
-      res.status(400);
-      throw new Error("All required fields must be included in the request");
+    // Check for required fields
+    if (!eventName || !venue || !description || !price || !startDate || !startTime || !endDate || !endTime === undefined) {
+      return res.status(400).json({ message: "All required fields must be included in the request" });
     }
 
-    // Handle Cloudinary upload for eventLogo
-    let eventLogoUrl = null;
-    if (req.files['eventLogo']) {
-      const eventLogo = req.files['eventLogo'][0];
-      const uploadResult = await cloudinary.uploader.upload(eventLogo.path, {
-        folder: 'event_logos', // Cloudinary folder
-        resource_type: 'image'
+    try {
+      // Handle Cloudinary upload for eventLogo
+      let eventLogoUrl = null;
+      if (req.files['eventLogo']) {
+        const eventLogo = req.files['eventLogo'][0];
+        const uploadResult = await cloudinary.uploader.upload(eventLogo.path, {
+          folder: 'event_logos',
+          resource_type: 'image'
+        });
+        eventLogoUrl = uploadResult.secure_url;
+      }
+
+      // Handle Cloudinary upload for thumbnail
+      let thumbnailUrl = null;
+      if (req.files['thumbnail']) {
+        const thumbnail = req.files['thumbnail'][0];
+        const uploadResult = await cloudinary.uploader.upload(thumbnail.path, {
+          folder: 'event_thumbnails',
+          resource_type: 'image'
+        });
+        thumbnailUrl = uploadResult.secure_url;
+      }
+
+      // Set default values if they are not provided
+      const category = eventCategory || 'Event';
+      const status = eventStatus || 'Public';
+      const eventTimezone = timezone || 'Dhaka';
+      const dress = dressCode || 'No Dresscode';
+
+      // Create event
+      const event = await Event.create({
+        eventName,
+        organizer: req.user.id,
+        eventCategory: category,
+        venue,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        eventStatus: status,
+        timezone: eventTimezone,
+        recurringEvent,
+        ageRestriction,
+        dressCode: dress,
+        description,
+        specialInstructions,
+        price,
+        eventLogo: eventLogoUrl,
+        thumbnail: thumbnailUrl
       });
-      eventLogoUrl = uploadResult.secure_url; // Get the secure URL from Cloudinary response
+
+      res.status(201).json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create event", error: error.message });
     }
-
-    // Handle Cloudinary upload for thumbnail
-    let thumbnailUrl = null;
-    if (req.files['thumbnail']) {
-      const thumbnail = req.files['thumbnail'][0];
-      const uploadResult = await cloudinary.uploader.upload(thumbnail.path, {
-        folder: 'event_thumbnails', // Cloudinary folder
-        resource_type: 'image'
-      });
-      thumbnailUrl = uploadResult.secure_url; // Get the secure URL from Cloudinary response
-    }
-
-    // Create event
-    const event = await Event.create({
-      eventName,
-      organizer: req.user.id, // Automatically assign the logged-in user's ID as the organizer
-      eventCategory,
-      venue,
-      startDateTime,
-      endDateTime,
-      timezone,
-      recurringEvent,
-      ageRestriction,
-      dressCode,
-      description,
-      specialInstructions,
-      price, // Include the price field when creating the event
-      eventLogo: eventLogoUrl,
-      thumbnail: thumbnailUrl
-    });
-
-    res.status(201).json(event);
   });
 });
+
 
 
 // @Description: Get a single event
