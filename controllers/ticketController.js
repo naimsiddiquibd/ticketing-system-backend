@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Ticket = require('../models/ticketModel');
 const Event = require('../models/eventModel');
+const User = require('../models/userModel');
 const axios = require('axios');
 const crypto = require('crypto');
 
@@ -158,18 +159,28 @@ const createTicket = asyncHandler(async (req, res) => {
     throw new Error("Event not found");
   }
 
+  // Fetch the user details
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
   try {
     // Create a new ticket
     const ticket = await Ticket.create({
       eventId,
-      userId: req.user.id,  // This assumes you're handling auth and req.user is available
+      userId: req.user.id,
+      userName: user.name,           // Assuming 'name' is the field for the user's name
+      userEmail: user.email,          // Assuming 'email' is the field for the user's email
+      userPhone: user.phoneNumber,          // Assuming 'phone' is the field for the user's phone number
       eventName: event.eventName,
-      organizer: event.organizer,  // Storing the organizer ID
+      organizer: event.organizer,
       thumbnail: event.thumbnail,
       startDate: event.startDate,
       startTime: event.startTime,
-      endTime: event.endTime,
       endDate: event.endDate,
+      endTime: event.endTime,
       status,
       price
     });
@@ -179,7 +190,7 @@ const createTicket = asyncHandler(async (req, res) => {
     if (err.code === 11000) {
       res.status(400).json({ error: 'User has already registered for this event' });
     } else {
-      console.error(err);  // Log error for debugging
+      console.error(err);
       res.status(500).json({ error: 'Error creating ticket' });
     }
   }

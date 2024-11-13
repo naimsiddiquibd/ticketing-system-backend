@@ -14,6 +14,18 @@ const ticketSchema = new Schema({
     required: true,
     index: true, // Create an index for efficient duplicate check
   },
+  userName: {
+    type: String,
+    required: true
+  },
+  userEmail: {
+    type: String,
+    required: true
+  },
+  userPhone: {
+    type: String,
+    required: true
+  },
   eventName: {
     type: String,
     required: true
